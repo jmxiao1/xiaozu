@@ -43,7 +43,7 @@ plt.title('Empirical error per run [Fig4(a)]')
 # 绘制图4(b)[17]
 plt.subplot(122)
 sample_var = [np.var(errors[i * runs:(i + 1) * runs]) for i in range(len(epsilon_range))]
-theory_var = 2 / (n* epsilon_range ** 2)  # 理论值简化公式[17]
+theory_var =8/ (n* epsilon_range ** 2)  # 理论值简化公式[17]
 #plt.loglog(epsilon_range, variance, 'bo', label='sample_var')
 plt.loglog(epsilon_range, sample_var, 'bo-', label='sample_var')
 plt.loglog(epsilon_range, theory_var, 'r--', label='theory_var')

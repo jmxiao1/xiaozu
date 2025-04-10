@@ -1,4 +1,5 @@
 import numpy as np
+import math
 import matplotlib.pyplot as plt
 from tqdm import tqdm
 import networkx as nx
@@ -13,7 +14,7 @@ delta =1  # 隐私参数[15]
 epsilon = 0.1 *np.ones(n) # 隐私预算[16]
 num_runs = 10000  # 模拟次数(论文中使用10^4次)[16]
 tolerance = 1e-2  # 收敛容差[16]
-num_iterations = 500# 最大迭代次数
+num_iterations = 100# 最大迭代次数
 Pi_n = np.ones((n, n)) / n#投影矩阵
 
 
@@ -62,30 +63,35 @@ def dp_consensus(L, initial_states, s, alpha=1e-6, delta=1, epsilon=0.1, max_ite
     c = delta * q / (epsilon * (q - abs(s - 1)))  # [16]
     #var1=(2*(delta**2)/(n**2))*np.sum((s**2)*(q**2)/((epsilon**2)*((q-abs(s-1))**2)*(1-q**2)))
     #var1 = (2  / (n ** 2)) * np.sum(c**2)
+    #var1 = (2 / (n ** 2)) * np.sum((s**2)*(c**2)/(1-q**2))
     var1 = (2 *(delta**2) / (n ** 2)) * np.sum((s ** 2) * (q ** 2) / ((epsilon ** 2) * ((q - abs(s - 1)) ** 2) * (1 - q ** 2)))
+    #var1 = (2 *(delta**2) / (n ** 2)) * np.sum((s**2 * q**2) / (alpha**2 * (1 - abs(s - 1))**2 * (1 - q**2)))
+    #var1 = (2 * (delta ** 2) / ((n ** 2)) *(epsilon ** 2))
     A = np.eye(n) - 0.5 * L #s * np.eye(n)
     B = s * np.eye(n) - 0.5 * L
     A_minus_Pi = A - Pi_n# 计算 A - Π_n
     # 计算 A - Π_n 的谱半径 λ
     eigenvalues = eigvals(A_minus_Pi)
-    lambda_max = np.max(np.abs(eigenvalues))
-    mu=0.84
+    lambda_mean = np.mean(np.abs(eigenvalues))
+    mu=max(lambda_mean,qmax)
     for k in range(max_iter):
         # 生成噪声（拉普拉斯分布）[16]
         noise = np.random.laplace(0, c, size=n)
 
         # 更新状态[16]
-        #theta_new = theta - L @ theta + noise * (s ** k)  # 这里简化了公式
+        #theta_new = A @theta  + noise * (s ** k)  # 这里简化了公式
         theta_new = A @ theta + B @ noise # 这里简化了公式
         theta_history.append(theta_new.copy())
         theta = theta_new
 
         # 检查收敛
-        if norm(theta - np.mean(theta)) < tol:
+        if norm(theta0 - np.mean(theta)) < tolerance:
             break
-    #kmax= np.log(np.linalg.norm(theta0-np.mean(theta))/ tolerance) / np.log(1/mu)
-    kmax = np.log(var1 / tolerance) / np.log(1 / mu)
-    return var1,theta, theta_history, kmax#k
+    kmax= np.log(np.linalg.norm((theta0 -theta)/tolerance))/ np.log(1/mu)
+    #kmax= np.log(np.linalg.norm(theta0-theta))/ np.log(1/mu)
+    #kmax = np.linalg.norm(theta0 - theta)
+    #kmax = np.log(math.sqrt(var1) /tolerance) /np.log(1 / mu)
+    return math.sqrt(var1),theta, theta_history, kmax#k
 
 
 # 5. 模拟实验（扫描s参数）
